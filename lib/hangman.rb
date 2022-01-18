@@ -20,8 +20,14 @@ class Game
   def new_game
     load_dictionary
     choose_random_word
-    
-
+    @guess_count = 6
+    @guess_list = []
+    loop do
+      Display.show_game(@guess_array, @guess_count)
+      guess = get_guess
+      check_guess(guess)
+      check_victory
+    end
   end
 
   # load dictionary
@@ -56,17 +62,60 @@ class Game
     # say goodbye
 
   end
-  # load the dictionary and choose a random word
-
-    # save the word as the key to check against
-
-    # save the word again as a masked array to display to user
 
   # input guess
+  def get_guess
+    loop do
+      # binding.pry
+      guess = Display.guess_prompt
+      if guess == 'save'
+        save_game
+      elsif guess.length != 1 || (guess.match(/[A-Za-z]/) ? false : true)
+        Display.incorrect_letter_prompt
+      elsif @guess_array.include?(guess.downcase) || @guess_list.include?(guess.downcase)
+        Display.used_letter_prompt(guess.downcase)
+      else
+        @guess_list.push(guess)
+        return guess.downcase
+      end
+    end
+  end
 
   # check guess
+  def check_guess(guess)
+    # binding.pry
+    if @word_key.include? guess
+      @word_key.each_with_index do |letter, index|
+        if letter == guess
+          @guess_array[index] = guess
+        end
+      end
+    else
+      @guess_count -= 1
+    end
+  end
 
-  # update word array, guess array, check for result, and display game state
+  # check victory
+  def check_victory
+    if @guess_count == 0
+      victory_yes_no(Display.game_result_prompt('loss'), 'loss')
+    elsif @guess_array.any?('_')
+      return
+    else
+      victory_yes_no(Display.game_result_prompt('win'), 'win')
+    end
+  end
+
+  def victory_yes_no(answer, result)
+    if answer == 'y'
+      new_game
+    elsif answer == 'n'
+      exit
+    else
+      Display.yes_no_error_prompt
+      victory_yes_no(Display.game_result_prompt(result))
+    end
+  end
 
 end
 
@@ -85,13 +134,13 @@ class Display
   
   # display game state (word guess array and guesses remaining)
   def self.show_game(guess_array, guess_count)
-    puts guess_array.join(' ')
-    puts "Guesses remaining: #{guess_count}"
+    puts "\n#{guess_array.join(' ')}"
+    puts "\nGuesses remaining: #{guess_count}"
   end
 
   # guess letter prompt
   def self.guess_prompt
-    puts "Please guess a letter"
+    puts "Type 'save' to save game and exit.  Otherwise, please guess a letter:"
     gets.chomp
   end
 
@@ -103,6 +152,16 @@ class Display
   # invalid load file name prompt error
   def self.load_error_prompt
     puts "Sorry, that is not the name of a game I have saved.  Please try again."
+  end
+
+  # used letter error prompt
+  def self.used_letter_prompt(letter)
+    puts "Sorry, '#{letter}' has already been guessed. Please choose a different letter:"
+  end
+
+  # incorrect letter error prompt
+  def self.incorrect_letter_prompt
+    puts "Sorry, you must type a single letter.  No digits or special characters allowed."
   end
 
   # save game exit prompt
@@ -119,6 +178,10 @@ class Display
       puts "Defeat! Would you like to play again? (y/n)"
       gets.chomp
     end
+  end
+
+  def self.yes_no_error_prompt
+    puts "Error: must type 'y' for yes or 'n' for no"
   end
 
 end
