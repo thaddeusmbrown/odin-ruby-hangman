@@ -1,6 +1,17 @@
 require 'pry-byebug'
+require 'json'
 
 class Game
+  attr_accessor :guess_count, :guess_list, :word_key, :guess_array
+
+  def initialize(guess_count, guess_list, word_key, guess_array, load_flag)
+    @guess_count, @guess_list, @word_key, @guess_array, @load_flag = guess_count, guess_list, word_key, guess_array, load_flag
+    if load_flag == 1
+      start_game
+    else
+      start
+    end
+  end
 
   # welcome player and start a new game from scratch
   def start
@@ -22,6 +33,10 @@ class Game
     choose_random_word
     @guess_count = 6
     @guess_list = []
+    start_game
+  end
+
+  def start_game
     loop do
       Display.show_game(@guess_array, @guess_count)
       guess = get_guess
@@ -49,18 +64,57 @@ class Game
     @guess_array = Array.new(@word_key.length, '_')
   end
 
-
   # load a previous game
   def load_game
     # load word key, guess array, and guesses remaining
-
+    if Dir.exist?('save_file')
+      file_name = "save_file/#{Display.load_save_file_prompt}.json"
+    else
+      Display.no_saves_prompt
+      new_game
+    end
+    if File.exist?(file_name)
+      file = File.read(file_name)
+      file_hash = JSON.parse(file, create_additions: true)
+      json_create(file_hash)
+    else
+      Display.bad_load_name_prompt
+      load_game
+    end
     # display state
-
   end
+
   # save a game and exit
   def save_game
-    # say goodbye
+    Dir.mkdir('save_file') unless Dir.exist?('save_file')
+    Display.save_file_prompt
+    file_name = gets.chomp
+    if !file_name.match?(/\A[a-zA-Z]{2,20}\z/)
+      Display.save_file_name_error_prompt
+      save_game
+    elsif File.exist?("save_file/#{file_name}.json")
+      Display.save_file_exists_error_prompt
+      save_game
+    else
+      File.open("save_file/#{file_name}.json", 'w') { |file| file.puts(self.to_json) }
+      Display.save_goodbye_prompt
+      exit
+    end
+  end
 
+  def to_json(*args)
+    {
+      JSON.create_id => self.class.name,
+      'guess_count' => guess_count,
+      'guess_list' => guess_list,
+      'word_key' => word_key,
+      'guess_array' => guess_array,
+      'load_flag' => 1
+    }.to_json(*args)
+  end
+
+  def self.json_create(file_hash)
+    new(file_hash['guess_count'], file_hash['guess_list'], file_hash['word_key'], file_hash['guess_array'], file_hash['load_flag'])
   end
 
   # input guess
@@ -184,8 +238,34 @@ class Display
     puts "Error: must type 'y' for yes or 'n' for no"
   end
 
+  def self.save_file_prompt
+    puts "Please enter a filename for the save that is between 2 and 20 letters"
+  end
+
+  def self.save_file_name_error_prompt
+    puts "Error: name must be between 2 and 20 letters (no numbers or special characters)"
+  end
+
+  def self.save_file_exists_error_prompt
+    puts "Error: file name already used"
+  end
+
+  def self.save_goodbye_prompt
+    puts "Game saved. 'Til next time!"
+  end
+
+  def self.load_save_file_prompt
+    puts "Please enter the name of the save file"
+    gets.chomp
+  end
+
+  def self.no_saves_prompt
+    puts "There are no save files, starting new game."
+  end
+
+  def self.bad_load_name_prompt
+    puts "That is not the name of a save file"
+  end
 end
 
-game = Game.new
-
-game.start
+game = Game.new(0, 0, 0, 0, 0)
