@@ -13,7 +13,6 @@ class Game
     end
   end
 
-  # welcome player and start a new game from scratch
   def start
     loop do
       answer = Display.welcome_prompt
@@ -26,8 +25,7 @@ class Game
       end
     end
   end
-    
-  # start a new game
+
   def new_game
     load_dictionary
     choose_random_word
@@ -39,21 +37,18 @@ class Game
   def start_game
     loop do
       Display.show_game(@guess_array, @guess_count)
-      guess = get_guess
+      guess = ask_guess
       check_guess(guess)
       check_victory
     end
   end
 
-  # load dictionary
   def load_dictionary
     words = File.open('5desk.txt')
     dictionary = []
     words.each do |row|
       row = row.strip
-      if row.length.between?(5, 12)
-        dictionary.push(row.downcase)
-      end
+      dictionary.push(row.downcase) if row.length.between?(5, 12)
     end
     dictionary
   end
@@ -64,15 +59,8 @@ class Game
     @guess_array = Array.new(@word_key.length, '_')
   end
 
-  # load a previous game
   def load_game
-    # load word key, guess array, and guesses remaining
-    if Dir.exist?('save_file')
-      file_name = "save_file/#{Display.load_save_file_prompt}.json"
-    else
-      Display.no_saves_prompt
-      new_game
-    end
+    file_name = check_save
     if File.exist?(file_name)
       file = File.read(file_name)
       file_hash = JSON.parse(file, create_additions: true)
@@ -81,13 +69,24 @@ class Game
       Display.bad_load_name_prompt
       load_game
     end
-    # display state
   end
 
-  # save a game and exit
+  def check_save
+    if Dir.exist?('save_file')
+      "save_file/#{Display.load_save_file_prompt}.json"
+    else
+      Display.no_saves_prompt
+      new_game
+    end
+  end
+
   def save_game
     Dir.mkdir('save_file') unless Dir.exist?('save_file')
     Display.save_file_prompt
+    ask_save_name
+  end
+
+  def ask_save_name
     file_name = gets.chomp
     if !file_name.match?(/\A[a-zA-Z]{2,20}\z/)
       Display.save_file_name_error_prompt
@@ -96,7 +95,7 @@ class Game
       Display.save_file_exists_error_prompt
       save_game
     else
-      File.open("save_file/#{file_name}.json", 'w') { |file| file.puts(self.to_json) }
+      File.open("save_file/#{file_name}.json", 'w') { |file| file.puts(to_json) }
       Display.save_goodbye_prompt
       exit
     end
@@ -114,13 +113,12 @@ class Game
   end
 
   def self.json_create(file_hash)
-    new(file_hash['guess_count'], file_hash['guess_list'], file_hash['word_key'], file_hash['guess_array'], file_hash['load_flag'])
+    new(file_hash['guess_count'], file_hash['guess_list'], file_hash['word_key'],
+        file_hash['guess_array'], file_hash['load_flag'])
   end
 
-  # input guess
-  def get_guess
+  def ask_guess
     loop do
-      # binding.pry
       guess = Display.guess_prompt
       if guess == 'save'
         save_game
@@ -135,9 +133,7 @@ class Game
     end
   end
 
-  # check guess
   def check_guess(guess)
-    # binding.pry
     if @word_key.include? guess
       @word_key.each_with_index do |letter, index|
         if letter == guess
@@ -149,13 +145,14 @@ class Game
     end
   end
 
-  # check victory
   def check_victory
-    if @guess_count == 0
+    if @guess_count.zero?
+      Display.show_game(@word_key, @guess_count)
       victory_yes_no(Display.game_result_prompt('loss'), 'loss')
     elsif @guess_array.any?('_')
       return
     else
+      Display.show_game(@word_key, @guess_count)
       victory_yes_no(Display.game_result_prompt('win'), 'win')
     end
   end
@@ -174,56 +171,45 @@ class Game
 end
 
 class Display
-
-  # welcome
   def self.welcome_prompt
     puts "Welcome to Hangman!\nWould you like to play a new game ('new') or load a previous game ('load')?"
     gets.chomp
   end
 
-  # load previous game
   def self.load_prompt
     puts "Please enter the name of the game you would like to load:"
   end
   
-  # display game state (word guess array and guesses remaining)
   def self.show_game(guess_array, guess_count)
     puts "\n#{guess_array.join(' ')}"
     puts "\nGuesses remaining: #{guess_count}"
   end
 
-  # guess letter prompt
   def self.guess_prompt
     puts "Type 'save' to save game and exit.  Otherwise, please guess a letter:"
     gets.chomp
   end
 
-  # unknown game start prompt error
   def self.unknown_start_prompt
     puts "Sorry, I don't understand. Type 'new' to start a new game, and type 'load' to load a previous game."
   end
 
-  # invalid load file name prompt error
   def self.load_error_prompt
     puts "Sorry, that is not the name of a game I have saved.  Please try again."
   end
 
-  # used letter error prompt
   def self.used_letter_prompt(letter)
     puts "Sorry, '#{letter}' has already been guessed. Please choose a different letter:"
   end
 
-  # incorrect letter error prompt
   def self.incorrect_letter_prompt
     puts "Sorry, you must type a single letter.  No digits or special characters allowed."
   end
 
-  # save game exit prompt
   def self.save_exit_prompt(save_name)
     puts "Thank you for playing! You can pick up where you left off by typing 'load' and '#{save_name}' when you come back"
   end
 
-  # game result and play again prompt
   def self.game_result_prompt(victory_condition)
     if victory_condition == 'win'
       puts "Victory! Would you like to play again? (y/n)"
@@ -268,4 +254,4 @@ class Display
   end
 end
 
-game = Game.new(0, 0, 0, 0, 0)
+Game.new(0, 0, 0, 0, 0)
