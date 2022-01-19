@@ -1,11 +1,16 @@
-require 'pry-byebug'
+# frozen_string_literal: true
+
 require 'json'
 
 class Game
   attr_accessor :guess_count, :guess_list, :word_key, :guess_array
 
   def initialize(guess_count, guess_list, word_key, guess_array, load_flag)
-    @guess_count, @guess_list, @word_key, @guess_array, @load_flag = guess_count, guess_list, word_key, guess_array, load_flag
+    @guess_count = guess_count
+    @guess_list = guess_list
+    @word_key = word_key
+    @guess_array = guess_array
+    @load_flag = load_flag
     if load_flag == 1
       start_game
     else
@@ -16,9 +21,10 @@ class Game
   def start
     loop do
       answer = Display.welcome_prompt
-      if answer == 'new'
+      case answer
+      when 'new'
         new_game
-      elsif answer == 'load'
+      when 'load'
         load_game
       else
         Display.unknown_start_prompt
@@ -136,9 +142,7 @@ class Game
   def check_guess(guess)
     if @word_key.include? guess
       @word_key.each_with_index do |letter, index|
-        if letter == guess
-          @guess_array[index] = guess
-        end
+        @guess_array[index] = guess if letter == guess
       end
     else
       @guess_count -= 1
@@ -150,7 +154,7 @@ class Game
       Display.show_game(@word_key, @guess_count)
       victory_yes_no(Display.game_result_prompt('loss'), 'loss')
     elsif @guess_array.any?('_')
-      return
+      nil
     else
       Display.show_game(@word_key, @guess_count)
       victory_yes_no(Display.game_result_prompt('win'), 'win')
@@ -158,16 +162,16 @@ class Game
   end
 
   def victory_yes_no(answer, result)
-    if answer == 'y'
+    case answer
+    when 'y'
       new_game
-    elsif answer == 'n'
+    when 'n'
       exit
     else
       Display.yes_no_error_prompt
       victory_yes_no(Display.game_result_prompt(result))
     end
   end
-
 end
 
 class Display
@@ -177,9 +181,9 @@ class Display
   end
 
   def self.load_prompt
-    puts "Please enter the name of the game you would like to load:"
+    puts 'Please enter the name of the game you would like to load:'
   end
-  
+
   def self.show_game(guess_array, guess_count)
     puts "\n#{guess_array.join(' ')}"
     puts "\nGuesses remaining: #{guess_count}"
@@ -195,7 +199,7 @@ class Display
   end
 
   def self.load_error_prompt
-    puts "Sorry, that is not the name of a game I have saved.  Please try again."
+    puts 'Sorry, that is not the name of a game I have saved.  Please try again.'
   end
 
   def self.used_letter_prompt(letter)
@@ -203,21 +207,16 @@ class Display
   end
 
   def self.incorrect_letter_prompt
-    puts "Sorry, you must type a single letter.  No digits or special characters allowed."
-  end
-
-  def self.save_exit_prompt(save_name)
-    puts "Thank you for playing! You can pick up where you left off by typing 'load' and '#{save_name}' when you come back"
+    puts 'Sorry, you must type a single letter.  No digits or special characters allowed.'
   end
 
   def self.game_result_prompt(victory_condition)
     if victory_condition == 'win'
-      puts "Victory! Would you like to play again? (y/n)"
-      gets.chomp
+      puts 'Victory! Would you like to play again? (y/n)'
     else
-      puts "Defeat! Would you like to play again? (y/n)"
-      gets.chomp
+      puts 'Defeat! Would you like to play again? (y/n)'
     end
+    gets.chomp
   end
 
   def self.yes_no_error_prompt
@@ -225,15 +224,15 @@ class Display
   end
 
   def self.save_file_prompt
-    puts "Please enter a filename for the save that is between 2 and 20 letters"
+    puts 'Please enter a filename for the save that is between 2 and 20 letters'
   end
 
   def self.save_file_name_error_prompt
-    puts "Error: name must be between 2 and 20 letters (no numbers or special characters)"
+    puts 'Error: name must be between 2 and 20 letters (no numbers or special characters)'
   end
 
   def self.save_file_exists_error_prompt
-    puts "Error: file name already used"
+    puts 'Error: file name already used'
   end
 
   def self.save_goodbye_prompt
@@ -241,16 +240,16 @@ class Display
   end
 
   def self.load_save_file_prompt
-    puts "Please enter the name of the save file"
+    puts 'Please enter the name of the save file'
     gets.chomp
   end
 
   def self.no_saves_prompt
-    puts "There are no save files, starting new game."
+    puts 'There are no save files, starting new game.'
   end
 
   def self.bad_load_name_prompt
-    puts "That is not the name of a save file"
+    puts 'That is not the name of a save file'
   end
 end
 
